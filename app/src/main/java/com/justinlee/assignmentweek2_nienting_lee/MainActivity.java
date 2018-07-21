@@ -41,12 +41,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ImageButton mButtonChangeSign;
     ImageButton mButtonPercent;
 
-    TextView mEnteredText;
-    TextView mResult;
+    TextView mShownText;
+    TextView mShownResult;
 
-    private String enteredExpression = "";
+    private static final String NO_ENTERED_EXPRESSION = "";
+    private String enteredExpression = NO_ENTERED_EXPRESSION;
 
-    // controllers used to aoivd input of consecutive point or operands
+    // controllers used to avoid input of consecutive point or operands
     private boolean pointEntered = false;
     private boolean operandEntered = false;
 
@@ -83,10 +84,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mButtonChangeSign = findViewById(R.id.button_changesign);
         mButtonPercent = findViewById(R.id.button_percent);
 
-        mEnteredText = findViewById(R.id.textTyped);
-        mEnteredText.setText("0");
-        mResult = findViewById(R.id.textResult);
-        mResult.setText("0");
+        mShownText = findViewById(R.id.textTyped);
+        mShownText.setText("0");
+        mShownResult = findViewById(R.id.textResult);
+        mShownResult.setText("0");
     }
 
     private void setOnclickListenersToButtons() {
@@ -165,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.button_equals:
-                if(!enteredExpression.equals("0") && !enteredExpression.equals("")) {
+                if(!enteredExpression.equals("0") && !enteredExpression.equals(NO_ENTERED_EXPRESSION)) {
                     cleanEnteredExpression();
                     showResult(enteredExpression);
                 }
@@ -183,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
 
-        mEnteredText.setText(enteredExpression);
+        mShownText.setText(enteredExpression);
     }
 
 
@@ -205,9 +206,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void resetEnteredExpression() {
-        enteredExpression = "";
-        mEnteredText.setText("0");
-        mResult.setText("0");
+        enteredExpression = NO_ENTERED_EXPRESSION;
+        mShownText.setText("0");
+        mShownResult.setText("0");
         allowOperandOrPointToBeEntered();
     }
 
@@ -222,64 +223,112 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void appendEnteredOperandOrPoint(String s) {
-        if (checkWhetherResultExists() && (pointEntered == false) && (operandEntered == false)) {
-            // if there is something in the result, use it to calculate
-            enteredExpression = mResult.getText().toString();
-            enteredExpression += s;
-            mEnteredText.setText(enteredExpression);
-
-        } else if ((pointEntered == false) && (operandEntered == false)) {
-            // if result is 0 or null or blank, then check and see if the
-            // expression has point or operand entered as last character
-            // if not, then append the operand or point
-            if (enteredExpression.equals("")) {
-                enteredExpression += "0.";
-            } else {
-                enteredExpression += s;
-            }
-        } else if((pointEntered == true) && (operandEntered == false)) {
-
-        } else if((pointEntered == false) && (operandEntered == true)) {
-            enteredExpression += "0.";
-            pointEntered = true;
-            operandEntered = false;
-        } else {
-            // if last character has point or operand as last character
-            // then replace it with the newly typed point or operand
-            int stringLen = enteredExpression.length();
-            switch (s) {
-                case OPERAND_PLUS:
-                case OPERAND_MINUS:
-                case OPERAND_TIMES:
-                case OPERAND_DIVIDE:
-                    if(!enteredExpression.substring(stringLen - 1).equals(SIGN_POINT)) {
-                        enteredExpression.replace(enteredExpression.substring(stringLen - 1), s);
+        if (enteredExpression.equals(NO_ENTERED_EXPRESSION) || enteredExpression.equals(" ")) {
+            // enteredExpression is empty means Equals button is just pressed
+            // check and see if shownResult has something first
+            if(checkWhetherShownResultExists()) {
+                // no expressionEntered but ShownResult exists
+                // if the entered key is one of the operand, then append it to the enteredExpression for calculation
+                switch (s) {
+                    case OPERAND_PLUS:
+                    case OPERAND_MINUS:
+                    case OPERAND_TIMES:
+                    case OPERAND_DIVIDE:
+                        enteredExpression = mShownResult.getText().toString();
+                        enteredExpression += s;
+                        mShownText.setText(enteredExpression);
                         operandEntered = true;
                         pointEntered = false;
-                    }
-                    break;
-                case SIGN_POINT:
-                    enteredExpression.replace(enteredExpression.substring(stringLen - 1), s);
-                    operandEntered = false;
-                    pointEntered = true;
-                    break;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
+            } else {
+                // no expressionEntered and no ShownResult
+                // operands cannot be appended, only when point is entered can it be appended to 0
+                switch (s) {
+                    case SIGN_POINT:
+                        enteredExpression = "0.";
+                        operandEntered = false;
+                        pointEntered = true;
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        } else {
+            // if something is in enteredExpression, it means Equaals button is not pressed,
+            // use enteredExpression to continue append the Operand or Point
+            if ((pointEntered == false) && (operandEntered == false)) {
+                enteredExpression += s;
+            } else {
+                int stringLen = enteredExpression.length();
+                if(lastCharIsAnOperandOrPoint()) {
+                    switch (s) {
+                        case OPERAND_PLUS:
+                        case OPERAND_MINUS:
+                        case OPERAND_TIMES:
+                        case OPERAND_DIVIDE:
+                            if(!enteredExpression.substring(stringLen - 1).equals(SIGN_POINT)) {
+                                enteredExpression.replace(enteredExpression.substring(stringLen - 1), s);
+                                operandEntered = true;
+                                pointEntered = false;
+                            }
+                            break;
+                        case SIGN_POINT:
+                            if(!enteredExpression.substring(stringLen - 1).equals(SIGN_POINT)) {
+                                enteredExpression.replace(enteredExpression.substring(stringLen - 1), s);
+                                operandEntered = false;
+                                pointEntered = true;
+                            }
+                            break;
+
+                        default:
+                            break;
+                    }
+                } else {
+                    enteredExpression += s;
+                }
             }
         }
     }
 
-    private boolean checkWhetherResultExists() {
-        if (!mResult.getText().toString().equals("0") &&
-                !mResult.getText().toString().equals("")) {
-            return true;
-        } else {
-            return false;
+    private boolean lastCharIsAnOperandOrPoint() {
+        int stringLen = enteredExpression.length();
+        String lastChar = enteredExpression.substring(stringLen - 1);
+        switch (lastChar) {
+            case OPERAND_PLUS:
+            case OPERAND_MINUS:
+            case OPERAND_TIMES:
+            case OPERAND_DIVIDE:
+            case SIGN_POINT:
+                return true;
+            default:
+                return false;
         }
     }
 
+    private boolean checkWhetherShownResultExists() {
+        if (mShownResult.getText().toString().equals("0") ||
+                mShownResult.getText().toString().equals(NO_ENTERED_EXPRESSION) ||
+                calcResult(mShownResult.getText().toString()) == 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 
+    private boolean checkWhetherShownExpressionExists() {
+        if (mShownText.getText().toString().equals("0") ||
+                mShownText.getText().toString().equals(NO_ENTERED_EXPRESSION) ||
+                calcResult(mShownText.getText().toString()) == 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 
     private double calcResult(String inputString) {
         double result = 0;
@@ -306,7 +355,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            stringResult = String.valueOf(result);
 //            stringResult = decimalFormat.format(stringResult);
         }
-        mResult.setText(stringResult);
+        mShownResult.setText(stringResult);
+        enteredExpression = NO_ENTERED_EXPRESSION;
     }
 
     // TODO format the result
