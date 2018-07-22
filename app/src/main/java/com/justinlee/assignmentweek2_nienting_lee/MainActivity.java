@@ -2,7 +2,6 @@ package com.justinlee.assignmentweek2_nienting_lee;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -14,13 +13,13 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "MainActivity";
 
     private static final String OPERAND_PLUS = "+";
     private static final String OPERAND_MINUS = "-";
     private static final String OPERAND_TIMES = "*";
     private static final String OPERAND_DIVIDE = "/";
     private static final String SIGN_POINT = ".";
+    private static final String NO_ENTERED_EXPRESSION = "";
 
     ImageButton mButton0;
     ImageButton mButton1;
@@ -45,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView mShownText;
     TextView mShownResult;
 
-    private static final String NO_ENTERED_EXPRESSION = "";
+
     private String enteredExpression = NO_ENTERED_EXPRESSION;
 
     // controllers used to avoid input of consecutive point or operands
@@ -86,9 +85,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mButtonPercent = findViewById(R.id.button_percent);
 
         mShownText = findViewById(R.id.textTyped);
-        mShownText.setText("");
+        mShownText.setText(NO_ENTERED_EXPRESSION);
         mShownResult = findViewById(R.id.textResult);
-        mShownResult.setText("");
+        mShownResult.setText(NO_ENTERED_EXPRESSION);
     }
 
     private void setOnclickListenersToButtons() {
@@ -186,34 +185,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             default:
                 break;
         }
-
-//        mShownText.setText(enteredExpression);
     }
 
-
-
-
     private void cleanEnteredExpression() {
-        int stringLen = enteredExpression.length();
-        String lastChar = enteredExpression.substring(stringLen - 1);
-        switch (lastChar) {
-            case OPERAND_PLUS:
-            case OPERAND_MINUS:
-            case OPERAND_TIMES:
-            case OPERAND_DIVIDE:
-            case SIGN_POINT:
-                enteredExpression.replace(enteredExpression.substring(stringLen - 1), "");
-                break;
-
-            default:
-                break;
+        if(lastCharIsAnOperandOrPoint()) {
+            enteredExpression = enteredExpression.substring(0, enteredExpression.length()-1);
+            mShownText.setText(enteredExpression);
         }
     }
 
     private void resetEnteredExpression() {
         enteredExpression = NO_ENTERED_EXPRESSION;
-        mShownText.setText("");
-        mShownResult.setText("");
+        mShownText.setText(NO_ENTERED_EXPRESSION);
+        mShownResult.setText(NO_ENTERED_EXPRESSION);
         allowOperandOrPointToBeEntered();
     }
 
@@ -287,25 +271,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             } else {
                 int stringLen = enteredExpression.length();
                 if(lastCharIsAnOperandOrPoint()) {
+                    enteredExpression = enteredExpression.substring(0, enteredExpression.length()-1);
+                    enteredExpression += s;
+
                     switch (s) {
                         case OPERAND_PLUS:
                         case OPERAND_MINUS:
                         case OPERAND_TIMES:
                         case OPERAND_DIVIDE:
-                            if(!enteredExpression.substring(stringLen - 1).equals(SIGN_POINT)) {
-                                enteredExpression = enteredExpression.replace(enteredExpression.substring(stringLen - 1), s);
-                                mShownText.setText(enteredExpression);
-                                operandEntered = true;
-                                pointEntered = false;
-                            }
+                            operandEntered = true;
+                            pointEntered = false;
                             break;
                         case SIGN_POINT:
-                            if(!enteredExpression.substring(stringLen - 1).equals(SIGN_POINT)) {
-                                enteredExpression = enteredExpression.replace(enteredExpression.substring(stringLen - 1), s);
-                                mShownText.setText(enteredExpression);
-                                operandEntered = false;
-                                pointEntered = true;
-                            }
+                            operandEntered = false;
+                            pointEntered = true;
                             break;
 
                         default:
@@ -329,7 +308,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case OPERAND_TIMES:
             case OPERAND_DIVIDE:
             case SIGN_POINT:
-                Log.d(TAG, "lastCharIsAnOperandOrPoint: true returned");
                 return true;
             default:
                 return false;
@@ -389,7 +367,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else {
             // there is enteredExpression, then need to calculate result first, then change sign
             showResult(enteredExpression, true);
-
         }
     }
 
